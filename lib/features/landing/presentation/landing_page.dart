@@ -1,8 +1,11 @@
 import 'package:fit_fuel_final/features/calorie/presentation/calorie_page.dart';
+import 'package:fit_fuel_final/features/home/home_page/presentation/home_page.dart';
 import 'package:fit_fuel_final/features/landing/presentation/provider/nav_bar_provider.dart';
 import 'package:fit_fuel_final/features/settings/setting_page.dart';
+import 'package:fit_fuel_final/features/workout/presentation/workout_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 
 class LandingPage extends ConsumerStatefulWidget {
   const LandingPage({super.key});
@@ -14,9 +17,9 @@ class LandingPage extends ConsumerStatefulWidget {
 class _LandingPageState extends ConsumerState<LandingPage> {
 
   final _pages = [
-    Center(child: Text('Home Page')),
+    HomePage(),
     CaloriePage(),
-    Center(child: Text('Workout Page')),
+    WorkoutPage(),
     SettingsPage(),
   ];
   @override

@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'package:fit_fuel_final/core/extensions/context_extension.dart';
 import 'package:fit_fuel_final/core/route/path.dart';
 import 'package:fit_fuel_final/features/calorie/presentation/provider/date_provider.dart';
+import 'package:fit_fuel_final/features/calorie/presentation/provider/total_calorie_summary_provider.dart';
 import 'package:fit_fuel_final/features/calorie/presentation/widget/dashboard_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,6 +43,8 @@ class CaloriePage extends ConsumerWidget {
     final selectedDate = ref.watch(dateProvider);
     final formattedDate = DateFormat.yMMMMd().format(selectedDate);
     final dateNotifier = ref.read(dateProvider.notifier);
+    final summaryAsync = ref.watch(calorieSummaryProvider);
+
 
 
     return Scaffold(
@@ -81,19 +84,34 @@ class CaloriePage extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-
-            DashboardWidget(
-              totalKcalSupplied: 800,
-              totalKcalBurned: 250,
-              totalKcalDaily: 2900,
-              totalKcalLeft: 2100 ,
-              totalCarbsIntake: 50,
-              totalFatsIntake: 20,
-              totalProteinsIntake: 13,
-              totalCarbsGoal: 200,
-              totalFatsGoal: 50,
-              totalProteinsGoal: 140,
+            summaryAsync.when(
+              data: (summary) => DashboardWidget(
+                totalKcalSupplied: summary.totalCalories,
+                totalKcalBurned: 0,
+                totalKcalDaily: 2900,
+                totalKcalLeft: 2900-summary.totalCalories  ,
+                totalCarbsIntake: summary.totalCarbs,
+                totalFatsIntake: summary.totalFats,
+                totalProteinsIntake: summary.totalProtein,
+                totalCarbsGoal: 200,
+                totalFatsGoal: 50,
+                totalProteinsGoal: 140,
+              ),
+              loading: () => DashboardWidget(
+                totalKcalSupplied: 0,
+                totalKcalBurned: 50,
+                totalKcalDaily: 2900,
+                totalKcalLeft: 2100 ,
+                totalCarbsIntake:0 ,
+                totalFatsIntake: 0,
+                totalProteinsIntake: 0,
+                totalCarbsGoal: 200,
+                totalFatsGoal: 50,
+                totalProteinsGoal: 140,
+              ),
+              error: (err, _) => Center(child: Text('Error: $err')),
             ),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

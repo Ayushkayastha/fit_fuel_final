@@ -69,6 +69,8 @@ dev_dependencies:
   riverpod_lint: ^2.6.5
   golden_toolkit: ^0.15.0
   drift_dev: ^2.27.0
+  pedometer: ^4.1.1
+
 
 
 
