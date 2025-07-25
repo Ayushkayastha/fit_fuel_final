@@ -2,7 +2,7 @@
 
 import 'package:fit_fuel_final/features/calorie/domain/total_calorie_summary.dart';
 
-import '../../../config/network/dio_client.dart';
+import '../../../../config/network/dio_client.dart';
 
 class CalorieSummaryService {
   final dio = DioClient.client;

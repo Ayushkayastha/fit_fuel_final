@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- 🟩 Permissions -->
+	<key>NSMotionUsageDescription</key>
+	<string>This application tracks your steps</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses your location to track running distance and speed.</string>
+
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app needs to open a local network port for the Flutter debug service.</string>
+
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+	</array>
 </dict>
 </plist>

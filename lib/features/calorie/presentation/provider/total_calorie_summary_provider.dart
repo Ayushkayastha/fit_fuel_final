@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../config/storage/secure_storage_providers.dart';
-import '../../domain/total_calorie_service_provider.dart';
+import 'total_calorie_service_provider.dart';
 import '../../domain/total_calorie_summary.dart';
 import 'date_provider.dart';
 
