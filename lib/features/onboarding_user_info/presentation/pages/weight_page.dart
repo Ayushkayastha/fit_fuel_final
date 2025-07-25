@@ -106,6 +106,7 @@ class WeightPage extends ConsumerWidget {
                   axis: Axis.horizontal,
                   onValueChanged: (value){
                     print('value:$value');
+                    ref.read(weightValueProvider.notifier).set(value.toDouble());
                   },
                 ),
               ),

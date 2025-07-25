@@ -17,15 +17,11 @@ class GenderPage extends ConsumerWidget {
   final List<String> labels = const [
     'Male',
     'Female',
-    'Other',
-    'Prefer not to say',
   ];
 
   final List<String> svgPaths =  [
     OnboardingInfoIcons.male,
     OnboardingInfoIcons.female,
-    OnboardingInfoIcons.others,
-    OnboardingInfoIcons.none,
   ];
   @override
   Widget build(BuildContext context,WidgetRef ref) {
@@ -69,7 +65,7 @@ class GenderPage extends ConsumerWidget {
                         const SnackBar(content: Text('Please select a gender option.')),
                       );
                     } else {
-                      context.go(PathName.goalRoute.path);
+                      context.go(PathName.heightRoute.path);
                       print('Selected gender: $selectedGender');
                     }
                   }

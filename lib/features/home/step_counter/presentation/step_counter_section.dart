@@ -105,28 +105,34 @@ class StepCounterSection extends ConsumerWidget {
       ],
     );
   }
-
   Widget _buildContainer(String text) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: const Color(0xFFFFB77B),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blueAccent),
+        border: Border.all(
+          color: const Color(0xFFFB8C00),
+          width: 2,
+        ),
       ),
       child: Center(
-        child: Text(text, style: const TextStyle(fontSize: 18)),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 18),
+        ),
       ),
     );
   }
+
 
   Widget _buildMetricContainer(String label, String value) {
     return Container(
       height: 56,
       width: 120,
       decoration: BoxDecoration(
-        color: Colors.deepOrangeAccent,
+        color: const Color(0xFFFB8C00),
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,

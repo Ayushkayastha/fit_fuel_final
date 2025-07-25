@@ -1,61 +1,167 @@
+import 'package:fit_fuel_final/shared/components/custom_bottom_btn.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../config/network/dio_client.dart';
+import '../../../config/storage/secure_storage_providers.dart';
 
-class WorkoutPage extends StatefulWidget {
+/// StateNotifier to manage predicted calories state and API call
+class PredictedCaloriesNotifier extends StateNotifier<double?> {
+  PredictedCaloriesNotifier() : super(null);
+
+  Future<void> fetchPredictedCalories({
+    required String userId,
+    required int duration,
+    required int heartRate,
+    required double bodyTemp,
+  }) async {
+    try {
+      final response = await DioClient.client.post(
+        'workout/predict-calories',
+        data: {
+          'userId': userId,
+          'duration': duration,
+          'heartRate': heartRate,
+          'bodyTemp': bodyTemp,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final predictedCalories = (response.data['predicted_Calories'] as num).toDouble();
+        state = predictedCalories;
+      } else {
+        throw Exception('Failed to fetch predicted calories. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      // You can handle/log errors here
+      state = null;
+      rethrow;
+    }
+  }
+}
+
+final predictedCaloriesProvider =
+StateNotifierProvider<PredictedCaloriesNotifier, double?>(
+        (ref) => PredictedCaloriesNotifier());
+
+class WorkoutPage extends ConsumerStatefulWidget {
   const WorkoutPage({super.key});
 
   @override
-  State<WorkoutPage> createState() => _WorkoutPageState();
+  ConsumerState<WorkoutPage> createState() => _WorkoutPageState();
 }
 
-class _WorkoutPageState extends State<WorkoutPage> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _fitnessLevelController = TextEditingController(text: "Beginner");
-  final TextEditingController _goalController = TextEditingController(text: "fatloss");
-  final TextEditingController _availabilityController = TextEditingController(text: "3");
-  final TextEditingController _equipmentController = TextEditingController(text: "Dumbbell");
-  final TextEditingController _ageController = TextEditingController(text: "25");
-  final TextEditingController _genderController = TextEditingController(text: "Male");
-  final TextEditingController _heightController = TextEditingController(text: "175.0");
-  final TextEditingController _weightController = TextEditingController(text: "70.0");
-
+class _WorkoutPageState extends ConsumerState<WorkoutPage> {
   Map<String, List<Map<String, dynamic>>> _workoutPlan = {};
   bool _loading = false;
 
-  Future<void> _fetchWorkoutPlan() async {
+  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _heartRateController = TextEditingController();
+  final TextEditingController _bodyTempController = TextEditingController();
+
+  Future<void> _fetchWorkoutPlan(String userId) async {
     setState(() => _loading = true);
     try {
       final response = await DioClient.client.post(
         'workout/workout-plan',
-        data: {
-          "fitness_level": _fitnessLevelController.text,
-          "goal": _goalController.text,
-          "availability": int.tryParse(_availabilityController.text),
-          "equipment_str": _equipmentController.text,
-          "age": int.tryParse(_ageController.text),
-          "gender": _genderController.text,
-          "height": double.tryParse(_heightController.text),
-          "weight": double.tryParse(_weightController.text),
-        },
+        data: {'userId': userId},
       );
 
       setState(() {
         _workoutPlan = Map<String, List<Map<String, dynamic>>>.from(
-          response.data['workoutPlan'].map((day, exercises) =>
-              MapEntry(day, List<Map<String, dynamic>>.from(exercises))),
+          response.data['workoutPlan'].map(
+                (day, exercises) => MapEntry(
+              day,
+              List<Map<String, dynamic>>.from(exercises),
+            ),
+          ),
         );
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching workout: ${e.toString()}")),
+      );
     } finally {
       setState(() => _loading = false);
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    ref.read(userIdProvider.future).then((userId) {
+      if (userId != null) {
+        _fetchWorkoutPlan(userId);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User ID not found")),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _durationController.dispose();
+    _heartRateController.dispose();
+    _bodyTempController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onSubmit() async {
+    final duration = int.tryParse(_durationController.text);
+    final heartRate = int.tryParse(_heartRateController.text);
+    final bodyTemp = double.tryParse(_bodyTempController.text);
+
+    if (duration == null || heartRate == null || bodyTemp == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid values in all fields')),
+      );
+      return;
+    }
+
+    final userId = await ref.read(userIdProvider.future);
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User ID not found')),
+      );
+      return;
+    }
+
+    try {
+      await ref.read(predictedCaloriesProvider.notifier).fetchPredictedCalories(
+        userId: userId,
+        duration: duration,
+        heartRate: heartRate,
+        bodyTemp: bodyTemp,
+      );
+      final predictedCalories = ref.watch(predictedCaloriesProvider);
+
+      if (predictedCalories != null) {
+        print("Predicted calories: $predictedCalories");
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Calories prediction fetched!')),
+      );
+
+      _durationController.clear();
+      _heartRateController.clear();
+      _bodyTempController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch calories: $e')),
+      );
+    }
+  }
+
   Widget _buildWorkoutList() {
     if (_workoutPlan.isEmpty) {
-      return const Text('No workout plan fetched yet.');
+      return const Center(
+        child: Text(
+          'No workout plan available.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
     }
 
     return Column(
@@ -63,85 +169,42 @@ class _WorkoutPageState extends State<WorkoutPage> {
         final day = entry.key;
         final exercises = entry.value;
 
-        final TextEditingController durationController = TextEditingController();
-        final TextEditingController heartRateController = TextEditingController();
-        final TextEditingController temperatureController = TextEditingController();
-
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: ExpansionTile(
             title: Text(
               day,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            children: [
-              ...exercises.map((exercise) {
-                return ListTile(
-                  title: Text(exercise['exercise_name']),
-                  subtitle: Text(
-                    '${exercise['primary_muscle']} - ${exercise['sets']} sets x ${exercise['reps']} reps',
-                  ),
-                );
-              }),
-
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Divider(),
-                    const Text("Daily Summary", style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: durationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Duration (minutes)',
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: heartRateController,
-                      decoration: const InputDecoration(
-                        labelText: 'Heart Rate (bpm)',
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: temperatureController,
-                      decoration: const InputDecoration(
-                        labelText: 'Temperature (°C)',
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 12),
-
-                    ElevatedButton(
-                      onPressed: () {
-                        final duration = durationController.text;
-                        final heartRate = heartRateController.text;
-                        final temperature = temperatureController.text;
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Day: $day\nDuration: $duration min\nHeart Rate: $heartRate bpm\nTemperature: $temperature °C',
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('Submit Summary'),
-                    ),
-                  ],
-                ),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 19,
+                color: Colors.black87,
               ),
-              const SizedBox(height: 12),
-            ],
+            ),
+            children: exercises.map((exercise) {
+              return ListTile(
+                title: Text(
+                  exercise['exercise_name'],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    '${exercise['primary_muscle']} - '
+                        '${exercise['sets']} sets x ${exercise['reps']} reps\n'
+                        'Rest: ${exercise['rest']} | Intensity: ${exercise['intensity']}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         );
       }).toList(),
@@ -149,119 +212,59 @@ class _WorkoutPageState extends State<WorkoutPage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _fetchWorkoutPlan(); // Auto fetch on load
-  }
-
-  @override
-  void dispose() {
-    _fitnessLevelController.dispose();
-    _goalController.dispose();
-    _availabilityController.dispose();
-    _equipmentController.dispose();
-    _ageController.dispose();
-    _genderController.dispose();
-    _heightController.dispose();
-    _weightController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final predictedCalories = ref.watch(predictedCaloriesProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Workout Plan')),
-      body: SingleChildScrollView(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(children: [
-          _buildWorkoutList(),
-          const Divider(height: 40),
-          Form(
-            key: _formKey,
-            child: Column(children: [
-              TextFormField(
-                controller: _fitnessLevelController,
-                decoration: const InputDecoration(labelText: 'Fitness Level'),
-                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+        child: Column(
+          children: [
+            _buildWorkoutList(),
+            SizedBox(height: 24),
+            TextField(
+              controller: _durationController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Duration (minutes)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _goalController,
-                decoration: const InputDecoration(labelText: 'Goal'),
-                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _heartRateController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Heart Rate (bpm)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _availabilityController,
-                decoration: const InputDecoration(labelText: 'Availability (days)'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (int.tryParse(value) == null) return 'Must be a number';
-                  return null;
-                },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _bodyTempController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Body Temperature (°C)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _equipmentController,
-                decoration: const InputDecoration(labelText: 'Equipment'),
-                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+            ),
+            const SizedBox(height: 20),
+            CustomBottomBtn(
+                context: context,
+                name: 'Submit Data',
+                callBack: _onSubmit
+            ),
+            const SizedBox(height: 24),
+            if (predictedCalories != null)
+              Text(
+                'Predicted Calories: ${predictedCalories.toStringAsFixed(1)} kcal',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _ageController,
-                decoration: const InputDecoration(labelText: 'Age'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (int.tryParse(value) == null) return 'Must be a number';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _genderController,
-                decoration: const InputDecoration(labelText: 'Gender'),
-                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _heightController,
-                decoration: const InputDecoration(labelText: 'Height (cm)'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (double.tryParse(value) == null) return 'Must be a number';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _weightController,
-                decoration: const InputDecoration(labelText: 'Weight (kg)'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (double.tryParse(value) == null) return 'Must be a number';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loading
-                    ? null
-                    : () {
-                  if (_formKey.currentState!.validate()) {
-                    _fetchWorkoutPlan();
-                  }
-                },
-                child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Generate Workout Plan'),
-              ),
-            ]),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }

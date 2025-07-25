@@ -108,6 +108,7 @@ class GoalWeight extends ConsumerWidget {
                   axis: Axis.horizontal,
                   onValueChanged: (value){
                     print('value:$value');
+                    ref.read(goalWeightValueProvider.notifier).set(value.toDouble());
                   },
                 ),
               ),
@@ -121,6 +122,7 @@ class GoalWeight extends ConsumerWidget {
                         const SnackBar(content: Text('Please select your goal')),
                       );
                     } else {
+                      context.go(PathName.goalRoute.path);
                       print('Selected goal: ');
                     }
                   }

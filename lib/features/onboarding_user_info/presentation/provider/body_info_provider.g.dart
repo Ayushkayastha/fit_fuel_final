@@ -37,7 +37,7 @@ final genderSelectionProvider =
     );
 
 typedef _$GenderSelection = Notifier<String?>;
-String _$goalSelectionHash() => r'45972afc440b4422fa28d0cee6643c57d7b16d6f';
+String _$goalSelectionHash() => r'd2c1fe8bfeb98ad8558e75ef752e1d881197e507';
 
 /// See also [GoalSelection].
 @ProviderFor(GoalSelection)
@@ -107,5 +107,50 @@ final goalWeightUnitSelectionProvider =
     );
 
 typedef _$GoalWeightUnitSelection = Notifier<WeightUnit>;
+String _$heightValueHash() => r'aea3e8cb29995fd2f0967b07a932a86d42b3fd37';
+
+/// See also [HeightValue].
+@ProviderFor(HeightValue)
+final heightValueProvider = NotifierProvider<HeightValue, double>.internal(
+  HeightValue.new,
+  name: r'heightValueProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$heightValueHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$HeightValue = Notifier<double>;
+String _$weightValueHash() => r'4a4500a7d6f15ac5d7b8dcf1734d0244068fd1e6';
+
+/// See also [WeightValue].
+@ProviderFor(WeightValue)
+final weightValueProvider = NotifierProvider<WeightValue, double>.internal(
+  WeightValue.new,
+  name: r'weightValueProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$weightValueHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$WeightValue = Notifier<double>;
+String _$goalWeightValueHash() => r'3d608299e0dac75a59e7548edc4a6c3455d6142c';
+
+/// See also [GoalWeightValue].
+@ProviderFor(GoalWeightValue)
+final goalWeightValueProvider =
+    NotifierProvider<GoalWeightValue, double>.internal(
+      GoalWeightValue.new,
+      name: r'goalWeightValueProvider',
+      debugGetCreateSourceHash:
+          const bool.fromEnvironment('dart.vm.product')
+              ? null
+              : _$goalWeightValueHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$GoalWeightValue = Notifier<double>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

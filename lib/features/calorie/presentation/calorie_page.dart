@@ -1,3 +1,4 @@
+import 'package:fit_fuel_final/features/calorie/presentation/provider/nutrition_goal_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -14,8 +15,25 @@ import 'package:fit_fuel_final/core/app_assets/calorie_page_asset.dart';
 import 'package:fit_fuel_final/config/network/dio_client.dart';
 import 'package:fit_fuel_final/config/storage/secure_storage_providers.dart';
 
-class CaloriePage extends ConsumerWidget {
+class CaloriePage extends ConsumerStatefulWidget {
   const CaloriePage({super.key});
+
+  @override
+  ConsumerState<CaloriePage> createState() => _CaloriePageState();
+}
+
+class _CaloriePageState extends ConsumerState<CaloriePage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Invalidate these providers so they refetch data on each page entry
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(calorieSummaryProvider);
+      ref.invalidate(nutritionGoalProvider);
+      // If you want to re-fetch other data on page entry, invalidate those providers here as well.
+    });
+  }
 
   Future<Map<String, dynamic>?> fetchStepEntry(
       WidgetRef ref, DateTime date) async {
@@ -55,11 +73,26 @@ class CaloriePage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final selectedDate = ref.watch(dateProvider);
     final formattedDate = DateFormat.yMMMMd().format(selectedDate);
     final dateNotifier = ref.read(dateProvider.notifier);
     final summaryAsync = ref.watch(calorieSummaryProvider);
+    final nutritionAsync = ref.watch(nutritionGoalProvider);
+
+    final nutrition = nutritionAsync.asData?.value;
+
+    final caloriesKcal = nutrition?.caloriesKcal;
+    final proteinG = nutrition?.proteinG;
+    final proteinKcal = nutrition?.proteinKcal;
+    final proteinPct = nutrition?.proteinPctOfTotalKcal;
+    final fatG = nutrition?.fatG;
+    final fatKcal = nutrition?.fatKcal;
+    final fatPct = nutrition?.fatPctOfTotalKcal;
+    final carbG = nutrition?.carbohydrateG;
+    final carbKcal = nutrition?.carbKcal;
+    final carbPct = nutrition?.carbPctOfTotalKcal;
+    final totalKcalFromMacros = nutrition?.totalKcalFromMacros;
 
     return FutureBuilder<Map<String, dynamic>?>(
       future: fetchStepEntry(ref, selectedDate),
@@ -110,32 +143,30 @@ class CaloriePage extends ConsumerWidget {
                   data: (summary) => DashboardWidget(
                     totalKcalSupplied: summary.totalCalories,
                     totalKcalBurned: stepCaloriesBurnt,
-                    totalKcalDaily: 2900,
-                    totalKcalLeft: 2900 - summary.totalCalories,
+                    totalKcalDaily: (caloriesKcal ?? 0).toDouble(),
+                    totalKcalLeft: ((caloriesKcal ?? 0) - summary.totalCalories).toDouble(),
                     totalCarbsIntake: summary.totalCarbs,
                     totalFatsIntake: summary.totalFats,
                     totalProteinsIntake: summary.totalProtein,
-                    totalCarbsGoal: 200,
-                    totalFatsGoal: 50,
-                    totalProteinsGoal: 140,
+                    totalCarbsGoal: (carbG ?? 0).toDouble(),
+                    totalFatsGoal: (fatG ?? 0).toDouble(),
+                    totalProteinsGoal: (proteinG ?? 0).toDouble(),
                   ),
                   loading: () => DashboardWidget(
                     totalKcalSupplied: 0,
-                    totalKcalBurned: stepCaloriesBurnt,
-                    totalKcalDaily: 2900,
-                    totalKcalLeft: 2900,
+                    totalKcalBurned: 0,
+                    totalKcalDaily: 0,
+                    totalKcalLeft: (caloriesKcal ?? 0).toDouble(),
                     totalCarbsIntake: 0,
                     totalFatsIntake: 0,
                     totalProteinsIntake: 0,
-                    totalCarbsGoal: 200,
-                    totalFatsGoal: 50,
-                    totalProteinsGoal: 140,
+                    totalCarbsGoal: 0,
+                    totalFatsGoal: 0,
+                    totalProteinsGoal: 0,
                   ),
                   error: (err, _) => Center(child: Text('Error: $err')),
                 ),
-
                 const SizedBox(height: 20),
-                // Meal Buttons Grid
                 _buildMealButtons(context),
               ],
             ),
@@ -233,7 +264,9 @@ class CaloriePage extends ConsumerWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: context.textTheme.titleMedium,
+              style: context.textTheme.titleMedium?.copyWith(
+                height: 1,  // Increase this number to add more spacing between lines
+              ),
             ),
           ],
         ),

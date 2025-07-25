@@ -111,6 +111,7 @@ class HeightPage extends ConsumerWidget {
                       axis: Axis.vertical,
                       onValueChanged: (value){
                         print('value:$value');
+                        ref.read(heightValueProvider.notifier).set(value.toDouble());
                       },
                     ),
                   ),
